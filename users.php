@@ -2,15 +2,15 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Debug logging
+
 error_log("Request received: " . $_SERVER['REQUEST_METHOD'] . " " . $_SERVER['REQUEST_URI']);
 
-// CORS headers
+
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-// Handle preflight OPTIONS request
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
@@ -18,55 +18,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 header("Content-Type: application/json");
 
-// // Test if file is being called
-// if ($_SERVER['REQUEST_METHOD'] === 'GET' && empty($_GET)) {
-//     echo json_encode(["message" => "API is working", "method" => $_SERVER['REQUEST_METHOD']]);
-//     exit;
-// }
 
 include 'db.php';
 
-// Helper: Get request data
+
 function getRequestData() {
     $input = file_get_contents("php://input");
     error_log("Raw input: " . $input);
     return json_decode($input, true);
 }
 
-// Helper: Send JSON response
+
 function sendResponse($data, $status = 200) {
     http_response_code($status);
     echo json_encode($data);
     exit;
 }
 
-// Routing logic
+
 $method = $_SERVER['REQUEST_METHOD'];
 $path = $_SERVER['REQUEST_URI'];
 
-// Debug the path
+
 error_log("Path: " . $path);
 
-// Extract ID from URL if present (e.g., /users.php/users/3 -> id = 3)
+
 $id = null;
 if (preg_match('/\/users\/(\d+)$/', $path, $matches)) {
     $id = $matches[1];
     error_log("Extracted ID: " . $id);
 }
 
-// Check if this is a users endpoint (either /users or /users.php)
+
 if (strpos($path, 'users') !== false) {
     switch ($method) {
         case 'GET':
             if (is_numeric($id)) {
-                // Get single user
+           
                 $stmt = $conn->prepare("SELECT id, name, email, dob, created_at FROM users WHERE id=?");
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
                 $result = $stmt->get_result()->fetch_assoc();
                 sendResponse($result ?: ["error" => "User not found"], $result ? 200 : 404);
             } else {
-                // Get all users
+          
                 $result = $conn->query("SELECT id, name, email, dob, created_at FROM users");
                 if (!$result) {
                     sendResponse(["error" => "Database error: " . $conn->error], 500);
